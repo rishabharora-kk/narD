@@ -7,7 +7,7 @@ from fastapi import Depends,FastAPI,Header,HTTPException
 from pydantic import BaseModel,Field
 from sqlalchemy import select
 from nard.forecast import create_prediction,payload,resolve_prediction,verify
-from nard.store import Event,Insight,Prediction,make_session_factory
+from nard.store import Event,Insight,Prediction,ReviewDecision,make_session_factory
 
 app=FastAPI(title="narD evidence & forecasts",version="0.1.0")
 
@@ -79,3 +79,40 @@ def resolve(prediction_id:str,body:OutcomeIn):
         try: resolve_prediction(session,p,body.outcome)
         except ValueError as exc: raise HTTPException(409,str(exc)) from exc
         return prediction_public(p)
+
+
+class ReviewIn(BaseModel):
+    verdict: str = Field(pattern="^(accepted|rejected|needs_evidence)$")
+    rationale: str = Field(min_length=15, max_length=2000)
+    reviewer: str = Field(min_length=3, max_length=100)
+
+
+@app.get("/reviews")
+def reviews(limit: int = 50):
+    """Review history is delivered only; observer processes cannot post decisions."""
+    with factory()() as session:
+        rows = session.scalars(select(ReviewDecision).order_by(
+            ReviewDecision.decided_at.desc()).limit(min(max(limit, 1), 200))).all()
+        return [
+            {"id": r.id, "insight_id": r.insight_id, "verdict": r.verdict,
+             "rationale": r.rationale, "reviewer": r.reviewer, "decided_at": r.decided_at}
+            for r in rows
+        ]
+
+
+@app.post("/insights/{insight_id}/reviews", dependencies=[Depends(require_admin)])
+def review_insight(insight_id: str, body: ReviewIn):
+    """Human-only handoff; no external alerts, messages, trades or automated actions."""
+    from uuid import uuid4
+
+    with factory()() as session:
+        candidate = session.get(Insight, insight_id)
+        if candidate is None:
+            raise HTTPException(404, "Unknown insight")
+        row = ReviewDecision(
+            id=str(uuid4()), insight_id=insight_id, verdict=body.verdict,
+            rationale=body.rationale, reviewer=body.reviewer
+        )
+        session.add(row)
+        session.commit()
+        return {"review_id": row.id, "insight_id": insight_id, "verdict": body.verdict}
