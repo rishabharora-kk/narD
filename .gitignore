@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+*.egg-info/
+.env
+.venv/
+nard.db
+nard.db-*
+data/
+.DS_Store
