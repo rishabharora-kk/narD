@@ -7,7 +7,7 @@ from fastapi import Depends,FastAPI,Header,HTTPException
 from pydantic import BaseModel,Field
 from sqlalchemy import select
 from nard.forecast import create_prediction,payload,resolve_prediction,verify
-from nard.store import Event,Insight,Prediction,make_session_factory
+from nard.store import Event,Insight,Prediction,ReviewDecision,make_session_factory
 
 app=FastAPI(title="narD evidence & forecasts",version="0.1.0")
 
