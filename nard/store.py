@@ -59,6 +59,18 @@ class Prediction(Base):
     outcome:Mapped[int|None]=mapped_column(Integer,nullable=True)
     brier:Mapped[float|None]=mapped_column(Float,nullable=True)
 
+
+class ReviewDecision(Base):
+    """Append-only operator decisions. Latest decision defines current review state."""
+    __tablename__ = "review_decisions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    insight_id: Mapped[str] = mapped_column(ForeignKey("insights.id"), index=True)
+    verdict: Mapped[str] = mapped_column(String(20))
+    rationale: Mapped[str] = mapped_column(Text)
+    reviewer: Mapped[str] = mapped_column(String(100))
+    decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 def make_session_factory(url=None):
     url=url or os.getenv("NARD_DATABASE_URL","sqlite:///./nard.db")
     engine=create_engine(url,connect_args={"check_same_thread":False} if url.startswith("sqlite") else {},pool_pre_ping=True)
