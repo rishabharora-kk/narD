@@ -1,0 +1,28 @@
+{
+  "sources": [
+    {
+      "id": "cppp_tenders", "family": "procurement", "url": "https://www.eprocure.gov.in/epublish/app",
+      "enabled": false, "terms_reviewed": false, "poll_seconds": 21600,
+      "themes": ["battery", "drone", "semiconductor", "industrial ai"],
+      "notes": "Official landing/listing page only. Confirm ToS, robots, allowed automation, and content availability first; no CAPTCHA handling."
+    },
+    {
+      "id": "ipindia_journal", "family": "patent", "url": "https://search.ipindia.gov.in/IPOJournal/Journal/patent",
+      "enabled": false, "terms_reviewed": false, "poll_seconds": 86400,
+      "themes": ["battery", "drone", "semiconductor", "industrial ai"],
+      "notes": "Listing page only, not patent PDF extraction; review terms and technical suitability."
+    },
+    {
+      "id": "anrf_calls", "family": "grant", "url": "https://www.anrfonline.in/ANRF/HomePage",
+      "enabled": false, "terms_reviewed": false, "poll_seconds": 21600,
+      "themes": ["battery", "drone", "semiconductor", "industrial ai"],
+      "notes": "Funding landing page; review access policy and verify that page content exposes useful calls."
+    },
+    {
+      "id": "pib_news", "family": "government_news", "url": "https://www.pib.gov.in/",
+      "enabled": false, "terms_reviewed": false, "poll_seconds": 21600,
+      "themes": ["battery", "drone", "semiconductor", "industrial ai"],
+      "notes": "Government news landing page; prefer an approved RSS or official API if available."
+    }
+  ]
+}

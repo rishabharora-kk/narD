@@ -1,0 +1,62 @@
+# Separate internal observation and hand-off planes. Only gateway joins the WAN.
+# Run from the repository root: docker compose -f infra/docker-compose.yml up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nard
+      POSTGRES_USER: nard
+      POSTGRES_PASSWORD: ${NARD_DB_PASSWORD:?Set NARD_DB_PASSWORD in environment}
+    volumes:
+      - nard_db:/var/lib/postgresql/data
+    networks: [observer_db, api_db]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nard -d nard"]
+      interval: 5s
+      retries: 12
+  gateway:
+    build: {context: ..}
+    command: ["uvicorn", "nard.gateway:app", "--host", "0.0.0.0", "--port", "8081"]
+    volumes:
+      - ../sources.json:/app/sources.json:ro
+    networks: [observer_gateway, gateway_egress]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+  observer:
+    build: {context: ..}
+    command: ["python", "-m", "nard.worker"]
+    environment:
+      NARD_DATABASE_URL: postgresql+psycopg://nard:${NARD_DB_PASSWORD}@db:5432/nard
+      NARD_GATEWAY_URL: http://gateway:8081
+      NARD_DATA_DIR: /data
+    volumes:
+      - ../sources.json:/app/sources.json:ro
+      - ../data:/data
+    depends_on:
+      db: {condition: service_healthy}
+      gateway: {condition: service_started}
+    networks: [observer_db, observer_gateway]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  api:
+    build: {context: ..}
+    command: ["uvicorn", "nard.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      NARD_DATABASE_URL: postgresql+psycopg://nard:${NARD_DB_PASSWORD}@db:5432/nard
+      NARD_ADMIN_TOKEN: ${NARD_ADMIN_TOKEN:-}
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [api_db]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+networks:
+  observer_gateway: {internal: true}
+  observer_db: {internal: true}
+  api_db: {internal: true}
+  gateway_egress: {}
+volumes:
+  nard_db: {}
